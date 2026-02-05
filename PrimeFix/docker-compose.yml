@@ -1,0 +1,93 @@
+version: "3.9"  # версия файла docker-compose
+
+services:  # описание всех сервисов (контейнеров), входящих в стек
+  nginx:
+    image: nginx:alpine  # официальный легковесный образ Nginx
+    container_name: nginx  # читаемое имя контейнера
+    depends_on:
+      - postgres  # запускать после PostgreSQL (для зависимых маршрутов)
+      - pgadmin   # запускать после pgAdmin (для удобства, не обязательно)
+      # - backend  # будет активирован при реализации бэкенда
+    ports:
+      - "80:80"  # пробрасываем порт 80 хоста на порт 80 внутри контейнера (HTTP-входная точка)
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro  # подключаем нашу конфигурацию Nginx только для чтения
+    networks:
+      - internal  # используем внутреннюю изолированную сеть
+
+  postgres:
+    image: postgres:16-alpine  # образ PostgreSQL (версия 16 на базе Alpine)
+    container_name: postgres  # имя контейнера базы данных
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-app_db}              # имя создаваемой БД по умолчанию
+      POSTGRES_USER: ${POSTGRES_USER:-app_user}        # пользователь БД
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me}  # пароль пользователя (заменить в реальной среде)
+    volumes:
+      - postgres_data:/var/lib/postgresql/data  # постоянное хранение данных БД в docker-томе
+    networks:
+      - internal  # база доступна только внутри внутренней сети
+
+  pgadmin:
+    image: dpage/pgadmin4:8  # образ веб-интерфейса pgAdmin 4
+    container_name: pgadmin  # имя контейнера pgAdmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@example.com}  # логин администратора pgAdmin
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-change_me}    # пароль администратора (заменить в реальной среде)
+      PGADMIN_LISTEN_PORT: ${PGADMIN_LISTEN_PORT:-80}                     # внутренний порт, на котором слушает pgAdmin
+    ports:
+      - "5050:80"  # пробрасываем порт 5050 хоста на порт 80 контейнера (интерфейс pgAdmin)
+    depends_on:
+      - postgres  # запускать после PostgreSQL
+    networks:
+      - internal  # доступ к PostgreSQL только через внутреннюю сеть
+
+  registry:
+    image: registry:2  # официальный образ Docker Registry v2
+    container_name: registry  # имя контейнера реестра образов
+    ports:
+      - "5000:5000"  # пробрасываем порт 5000 хоста на порт 5000 контейнера (доступ к реестру)
+    environment:
+      REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY: /var/lib/registry  # путь хранения образов внутри контейнера
+      REGISTRY_AUTH: htpasswd  # включаем аутентификацию по файлу htpasswd
+      REGISTRY_AUTH_HTPASSWD_REALM: "Registry Realm"  # название области аутентификации
+      REGISTRY_AUTH_HTPASSWD_PATH: /auth/htpasswd     # путь к файлу htpasswd внутри контейнера
+    volumes:
+      - registry_data:/var/lib/registry  # том для хранения образов реестра
+      - ./registry/auth:/auth            # монтируем каталог с файлом htpasswd
+    networks:
+      - internal  # реестр находится во внутренней сети
+
+  watchtower:
+    image: containrrr/watchtower  # образ утилиты Watchtower
+    container_name: watchtower    # имя контейнера watchtower
+    command: --cleanup --interval ${WATCHTOWER_INTERVAL:-300}  # удалять старые образы и проверять обновления каждые N секунд
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock  # доступ к Docker API хоста для управления контейнерами
+    networks:
+      - internal  # watchtower также подключен к внутренней сети
+
+  # backend:
+  #   image: ${BACKEND_IMAGE:-backend-image:latest}  # образ бэкенда (по умолчанию backend-image:latest или значение из .env)
+  #   container_name: backend      # имя контейнера бэкенда
+  #   restart: always              # автоматически перезапускать контейнер при сбоях
+  #   environment:
+  #     # TODO: добавить переменные окружения для подключения к PostgreSQL (настроить при реализации бэкенда)
+  #     # DB_HOST=${BACKEND_DB_HOST:-postgres}      # адрес сервиса PostgreSQL во внутренней сети
+  #     # DB_PORT=${BACKEND_DB_PORT:-5432}          # порт PostgreSQL во внутренней сети
+  #     # DB_NAME=${BACKEND_DB_NAME:-app_db}        # имя базы данных
+  #     # DB_USER=${BACKEND_DB_USER:-app_user}      # пользователь базы данных
+  #     # DB_PASSWORD=${BACKEND_DB_PASSWORD:-change_me}  # пароль пользователя
+  #   depends_on:
+  #     - postgres  # запускать после PostgreSQL
+  #   networks:
+  #     - internal  # доступен только внутри внутренней сети через Nginx
+
+volumes:
+  postgres_data:  # том для хранения данных PostgreSQL
+  registry_data:  # том для хранения данных Docker Registry
+
+networks:
+  internal:
+    driver: bridge  # используем стандартный bridge-драйвер Docker
+    internal: true  # сеть помечена как внутренная, недоступна напрямую с хоста
+

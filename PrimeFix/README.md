@@ -18,16 +18,35 @@
 
 ## 1. Предварительные требования
 
-- Docker
-- Docker Compose (рекомендуется v2+ с командой `docker compose`)
+- Docker с поддержкой API не ниже **1.44** (иначе возможна ошибка «client version 1.25 is too old»).
+- Docker Compose (рекомендуется v2+ с командой `docker compose`).
 
 Все команды нужно выполнять из корня репозитория (где находится файл `docker-compose.yml`).
+
+### Обновление Docker до нужной версии
+
+Если при запуске появляется ошибка про API version 1.44, обновите Docker:
+
+- **Ubuntu/Debian:** выполните скрипт от root:
+  ```bash
+  sudo bash scripts/upgrade-docker.sh
+  ```
+- Убедитесь, что не задана старая версия API: `unset DOCKER_API_VERSION`.
+- Перезапустите демон при необходимости: `sudo systemctl restart docker`.
 
 ---
 
 ## 2. Запуск и остановка стека
 
 ### Запуск стека
+
+При первом запуске или если образы не подтянулись, сначала скачайте их:
+
+```bash
+docker compose pull
+```
+
+Затем запустите все сервисы:
 
 ```bash
 docker compose up -d
@@ -240,4 +259,19 @@ Nginx уже настроен на проксирование API-запросо
   - `5000` → Docker Registry
   - `5050` → pgAdmin
 - Данные клиентов предназначены для хранения только на этом сервере; внешние базы данных и внешние сервисы хранения данных в этой конфигурации не используются.
+
+---
+
+## 9. Устранение неполадок
+
+### Nginx не стартует: «host not found in upstream "backend"»
+
+Конфигурация Nginx настроена так, что резолвинг `backend` выполняется при запросе, а не при старте. Nginx должен запускаться даже без контейнера backend. Если ошибка всё же появляется, проверьте, что в `nginx/conf.d/default.conf` используется `resolver 127.0.0.11` и `proxy_pass http://$backend_ups`.
+
+### Watchtower: «client version 1.25 is too old. Minimum supported API version is 1.44»
+
+Демон Docker на хосте требует API 1.44+, а образ Watchtower может содержать старый клиент. Сделано:
+
+- В `docker-compose.yml` указан образ `containrrr/watchtower:1.8.2`. Выполните `docker compose pull watchtower` и снова `docker compose up -d`.
+- Если ошибка сохраняется, временно отключите Watchtower: закомментируйте сервис `watchtower` в `docker-compose.yml` и запустите стек без него. Остальные сервисы от этого не пострадают.
 

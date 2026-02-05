@@ -1,5 +1,3 @@
-version: "3.9"  # версия файла docker-compose
-
 services:  # описание всех сервисов (контейнеров), входящих в стек
   nginx:
     image: nginx:alpine  # официальный легковесный образ Nginx
@@ -9,7 +7,7 @@ services:  # описание всех сервисов (контейнеров)
       - pgadmin   # запускать после pgAdmin (для удобства, не обязательно)
       # - backend  # будет активирован при реализации бэкенда
     ports:
-      - "80:80"  # пробрасываем порт 80 хоста на порт 80 внутри контейнера (HTTP-входная точка)
+      - "0.0.0.0:80:80"  # проброс порта 80 хоста на порт 80 контейнера (доступ с любого интерфейса)
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d:ro  # подключаем нашу конфигурацию Nginx только для чтения
     networks:
@@ -28,29 +26,38 @@ services:  # описание всех сервисов (контейнеров)
       - internal  # база доступна только внутри внутренней сети
 
   pgadmin:
-    image: dpage/pgadmin4:8  # образ веб-интерфейса pgAdmin 4
-    container_name: pgadmin  # имя контейнера pgAdmin
+    image: dpage/pgadmin4:8
+    container_name: pgadmin
     environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@example.com}  # логин администратора pgAdmin
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-change_me}    # пароль администратора (заменить в реальной среде)
-      PGADMIN_LISTEN_PORT: ${PGADMIN_LISTEN_PORT:-80}                     # внутренний порт, на котором слушает pgAdmin
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@example.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-change_me}
+      PGADMIN_LISTEN_PORT: ${PGADMIN_LISTEN_PORT:-80}
+      SCRIPT_NAME: /pgadmin
+      # Доверять заголовкам X-Forwarded от Nginx (иначе редиректы/сессия за прокси ломаются)
+      PROXY_X_FOR_COUNT: 1
+      PROXY_X_PROTO_COUNT: 1
+      PROXY_X_HOST_COUNT: 1
+      PROXY_X_PREFIX_COUNT: 1
+      # Отключить усиленную проверку cookie за reverse proxy (иначе сессия может не сохраняться)
+      PGADMIN_CONFIG_ENHANCED_COOKIE_PROTECTION: "False"
     ports:
-      - "5050:80"  # пробрасываем порт 5050 хоста на порт 80 контейнера (интерфейс pgAdmin)
+      - "0.0.0.0:5050:80"  # проброс порта 5050 хоста на порт 80 контейнера (интерфейс pgAdmin)
     depends_on:
       - postgres  # запускать после PostgreSQL
     networks:
       - internal  # доступ к PostgreSQL только через внутреннюю сеть
 
   registry:
-    image: registry:2  # официальный образ Docker Registry v2
-    container_name: registry  # имя контейнера реестра образов
+    image: registry:2
+    container_name: registry
     ports:
-      - "5000:5000"  # пробрасываем порт 5000 хоста на порт 5000 контейнера (доступ к реестру)
+      - "0.0.0.0:5000:5000"
     environment:
-      REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY: /var/lib/registry  # путь хранения образов внутри контейнера
-      REGISTRY_AUTH: htpasswd  # включаем аутентификацию по файлу htpasswd
-      REGISTRY_AUTH_HTPASSWD_REALM: "Registry Realm"  # название области аутентификации
-      REGISTRY_AUTH_HTPASSWD_PATH: /auth/htpasswd     # путь к файлу htpasswd внутри контейнера
+      REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY: /var/lib/registry
+      REGISTRY_AUTH: htpasswd
+      REGISTRY_AUTH_HTPASSWD_REALM: "Registry Realm"
+      REGISTRY_AUTH_HTPASSWD_PATH: /auth/htpasswd
+      REGISTRY_HTTP_SECRET: ${REGISTRY_HTTP_SECRET:-primefix-registry-secret-change-in-production}
     volumes:
       - registry_data:/var/lib/registry  # том для хранения образов реестра
       - ./registry/auth:/auth            # монтируем каталог с файлом htpasswd
@@ -58,13 +65,15 @@ services:  # описание всех сервисов (контейнеров)
       - internal  # реестр находится во внутренней сети
 
   watchtower:
-    image: containrrr/watchtower  # образ утилиты Watchtower
-    container_name: watchtower    # имя контейнера watchtower
+    image: containrrr/watchtower  # образ Watchtower (тег latest)
+    container_name: watchtower
     command: --cleanup --interval ${WATCHTOWER_INTERVAL:-300}  # удалять старые образы и проверять обновления каждые N секунд
+    environment:
+      DOCKER_API_VERSION: ${DOCKER_API_VERSION:-1.44}  # минимальная версия API для связи с демоном (1.44 — если ошибка «client version 1.25 is too old»)
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock  # доступ к Docker API хоста для управления контейнерами
     networks:
-      - internal  # watchtower также подключен к внутренней сети
+      - internal
 
   # backend:
   #   image: ${BACKEND_IMAGE:-backend-image:latest}  # образ бэкенда (по умолчанию backend-image:latest или значение из .env)
@@ -88,6 +97,7 @@ volumes:
 
 networks:
   internal:
-    driver: bridge  # используем стандартный bridge-драйвер Docker
-    internal: true  # сеть помечена как внутренная, недоступна напрямую с хоста
+    driver: bridge
+    # internal: false — обязательно для работы проброса портов (80, 5050, 5000) на хост.
+    # Сеть остаётся изолированной от других стеков; контейнеры доступны только по явно указанным ports.
 

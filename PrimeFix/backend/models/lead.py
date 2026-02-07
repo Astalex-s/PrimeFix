@@ -57,6 +57,7 @@ class Lead(Base):
     product_interest = Column(String(255), nullable=True)
     preferred_contact_method = Column(String(255), nullable=True)
     convenient_time = Column(String(255), nullable=True)
+    service = Column(String(255), nullable=True)  # выбранная услуга из справочника
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 

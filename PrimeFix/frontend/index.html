@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PrimeFix — Премиальный сервис</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <div class="bg-circles" aria-hidden="true">
+    <span class="circle circle-1"></span>
+    <span class="circle circle-2"></span>
+    <span class="circle circle-3"></span>
+    <span class="circle circle-4"></span>
+    <span class="circle circle-5"></span>
+    <span class="circle circle-6"></span>
+  </div>
+
+  <header class="header">
+    <div class="container">
+      <a href="#" class="logo">PrimeFix</a>
+      <nav class="nav">
+        <a href="#form">Оформить заказ</a>
+        <a href="#contact">Контакты</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container hero__container">
+        <p class="hero__label animate-in">Премиальный сервис</p>
+        <h1 class="hero__title animate-in animate-in--delay-1">Элитное обслуживание</h1>
+        <p class="hero__subtitle animate-in animate-in--delay-2">Оставьте заявку — мы свяжемся с вами в удобное время и обсудим детали сотрудничества.</p>
+        <a href="#form" class="btn btn--primary animate-in animate-in--delay-3">Оформить заказ</a>
+      </div>
+    </section>
+
+    <section class="intro">
+      <div class="container">
+        <h2 class="section-title animate-on-scroll">Ваш надёжный партнёр</h2>
+        <p class="intro__text animate-on-scroll">Мы создаём условия для спокойной работы и развития вашего бизнеса. Персональный подход, прозрачные условия и внимание к каждой детали.</p>
+      </div>
+    </section>
+
+    <section id="form" class="form-section">
+      <div class="container form-section__container">
+        <h2 class="section-title section-title--center animate-on-scroll">Оформить заявку</h2>
+        <p class="form-section__lead form-section__lead--center animate-on-scroll">Заполните форму — мы ответим в ближайшее время.</p>
+
+        <form id="lead-form" class="form form--centered animate-on-scroll" autocomplete="on">
+          <div class="form__grid form__grid--names">
+            <div class="field">
+              <label for="name">Имя <span class="required">*</span></label>
+              <input type="text" id="name" name="name" required placeholder="Иван" />
+            </div>
+            <div class="field">
+              <label for="surname">Фамилия <span class="required">*</span></label>
+              <input type="text" id="surname" name="surname" required placeholder="Иванов" />
+            </div>
+            <div class="field">
+              <label for="patronymic">Отчество</label>
+              <input type="text" id="patronymic" name="patronymic" placeholder="Иванович" />
+            </div>
+          </div>
+
+          <div class="form__grid">
+            <div class="field field--full">
+              <label for="service">Услуга</label>
+              <select id="service" name="service" class="field__select">
+                <option value="">Выберите услугу</option>
+              </select>
+              <p id="service-description" class="service-description" aria-live="polite"></p>
+            </div>
+          </div>
+
+          <div class="form__grid">
+            <div class="field field--full">
+              <label for="business_info">О бизнесе</label>
+              <textarea id="business_info" name="business_info" rows="3" placeholder="Кратко опишите сферу и задачи"></textarea>
+            </div>
+            <div class="field">
+              <label for="niche">Ниша</label>
+              <input type="text" id="niche" name="niche" placeholder="Например: строительство, IT" />
+            </div>
+            <div class="field">
+              <label for="company_size">Размер компании</label>
+              <input type="text" id="company_size" name="company_size" placeholder="Количество сотрудников или оборот" />
+            </div>
+            <div class="field">
+              <label for="role">Ваша роль</label>
+              <input type="text" id="role" name="role" placeholder="Должность" />
+            </div>
+            <div class="field">
+              <label for="business_size">Размер бизнеса</label>
+              <input type="text" id="business_size" name="business_size" placeholder="Малый / средний / крупный" />
+            </div>
+          </div>
+
+          <div class="form__grid">
+            <div class="field">
+              <label for="budget">Бюджет</label>
+              <input type="text" id="budget" name="budget" placeholder="Ориентировочный бюджет" />
+            </div>
+            <div class="field">
+              <label for="task_volume">Объём задач</label>
+              <input type="text" id="task_volume" name="task_volume" placeholder="Объём работ" />
+            </div>
+            <div class="field">
+              <label for="need_volume">Объём потребности</label>
+              <input type="text" id="need_volume" name="need_volume" placeholder="Что требуется" />
+            </div>
+            <div class="field">
+              <label for="deadline">Срок</label>
+              <input type="text" id="deadline" name="deadline" placeholder="Желаемые сроки" />
+            </div>
+            <div class="field">
+              <label for="task_type">Тип задачи</label>
+              <input type="text" id="task_type" name="task_type" placeholder="Тип проекта" />
+            </div>
+            <div class="field">
+              <label for="product_interest">Интерес к продукту</label>
+              <input type="text" id="product_interest" name="product_interest" placeholder="Услуги или продукты" />
+            </div>
+          </div>
+
+          <div class="form__grid">
+            <div class="field">
+              <label for="contact_method">Способ связи</label>
+              <input type="text" id="contact_method" name="contact_method" placeholder="Телефон, email, мессенджер" />
+            </div>
+            <div class="field">
+              <label for="preferred_contact_method">Предпочитаемый способ связи</label>
+              <input type="text" id="preferred_contact_method" name="preferred_contact_method" placeholder="Как удобнее связаться" />
+            </div>
+            <div class="field">
+              <label for="convenient_time">Удобное время</label>
+              <input type="text" id="convenient_time" name="convenient_time" placeholder="Когда перезвонить" />
+            </div>
+          </div>
+
+          <div class="field field--full">
+            <label for="comments">Комментарий</label>
+            <textarea id="comments" name="comments" rows="4" placeholder="Дополнительная информация"></textarea>
+          </div>
+
+          <div class="form__submit">
+            <button type="submit" class="btn btn--primary btn--large" id="submit-btn">Оформить заказ</button>
+            <p id="form-message" class="form-message" role="status" aria-live="polite"></p>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <section id="contact" class="contact">
+      <div class="container contact__container">
+        <h2 class="section-title">Связаться с нами</h2>
+        <p class="contact__text">По любым вопросам — напишите или позвоните. Мы на связи.</p>
+        <div class="contact__cards">
+          <a href="tel:+74951234567" class="contact-card contact-card--animate">
+            <span class="contact-card__icon" aria-hidden="true">📞</span>
+            <span class="contact-card__label">Телефон</span>
+            <span class="contact-card__value">+7 (495) 123-45-67</span>
+          </a>
+          <a href="mailto:info@primefix.ru" class="contact-card contact-card--animate">
+            <span class="contact-card__icon" aria-hidden="true">✉️</span>
+            <span class="contact-card__label">Email</span>
+            <span class="contact-card__value">info@primefix.ru</span>
+          </a>
+          <div class="contact-card contact-card--animate">
+            <span class="contact-card__icon" aria-hidden="true">📍</span>
+            <span class="contact-card__label">Офис</span>
+            <span class="contact-card__value">г. Москва, ул. Премиум, д. 1, офис 100</span>
+          </div>
+          <div class="contact-card contact-card--animate">
+            <span class="contact-card__icon" aria-hidden="true">🕐</span>
+            <span class="contact-card__label">Режим работы</span>
+            <span class="contact-card__value">Пн–Пт: 9:00 – 19:00, Сб: 10:00 – 16:00</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p class="footer__copy">© PrimeFix. Премиальный сервис. г. Москва, ул. Премиум, д. 1 · +7 (495) 123-45-67 · info@primefix.ru</p>
+    </div>
+  </footer>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

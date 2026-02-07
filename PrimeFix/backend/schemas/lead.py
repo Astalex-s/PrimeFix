@@ -22,6 +22,7 @@ class LeadBase(BaseModel):
     product_interest: str | None = None
     preferred_contact_method: str | None = None
     convenient_time: str | None = None
+    service: str | None = None
 
 
 class LeadCreate(LeadBase):
@@ -47,6 +48,7 @@ class LeadUpdate(BaseModel):
     product_interest: str | None = None
     preferred_contact_method: str | None = None
     convenient_time: str | None = None
+    service: str | None = None
 
 
 class LeadResponse(LeadBase):

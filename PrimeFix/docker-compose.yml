@@ -1,17 +1,20 @@
 services:  # описание всех сервисов (контейнеров), входящих в стек
   nginx:
-    image: nginx:alpine  # официальный легковесный образ Nginx
-    container_name: nginx  # читаемое имя контейнера
+    build:
+      context: .
+      dockerfile: Dockerfile.nginx
+    image: primefix-nginx:latest
+    container_name: nginx
     depends_on:
-      - postgres  # запускать после PostgreSQL (для зависимых маршрутов)
-      - pgadmin   # запускать после pgAdmin (для удобства, не обязательно)
-      - backend   # API доступен только через Nginx по /api/
+      - postgres
+      - pgadmin
+      - backend
     ports:
-      - "0.0.0.0:80:80"  # проброс порта 80 хоста на порт 80 контейнера (доступ с любого интерфейса)
+      - "0.0.0.0:80:80"
     volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d:ro  # подключаем нашу конфигурацию Nginx только для чтения
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
     networks:
-      - internal  # используем внутреннюю изолированную сеть
+      - internal
 
   postgres:
     image: postgres:16-alpine  # образ PostgreSQL (версия 16 на базе Alpine)

@@ -1,5 +1,6 @@
 """Pydantic-схемы для метрик лида."""
 from datetime import datetime
+
 from pydantic import BaseModel
 
 

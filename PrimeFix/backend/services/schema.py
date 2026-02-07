@@ -1,5 +1,6 @@
 """Pydantic-схемы для услуг."""
 from datetime import datetime
+
 from pydantic import BaseModel
 
 
@@ -27,6 +28,7 @@ class ServiceResponse(ServiceBase):
 
 class ServicePublic(BaseModel):
     """Для публичного API формы: id, название, описание."""
+
     id: int
     name: str
     description: str | None = None

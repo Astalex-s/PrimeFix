@@ -95,15 +95,15 @@ docker compose up -d nginx
   - `DELETE /api/admin/services/{id}` — удалить
 - **Пользователь** видит в выпадающем списке все услуги из БД и пункт «Другое»; при выборе услуги под полем отображается её описание.
 
-Таблица создаётся при старте бэкенда (`Base.metadata.create_all`). Если таблица уже существовала до обновления, выполните при необходимости: см. `backend/scripts/create_services_table.sql`.
+Таблица создаётся при старте бэкенда (`Base.metadata.create_all`). Если таблица уже существовала до обновления, выполните при необходимости: см. `backend/db/migrations/create_services_table.sql`.
 
 Если таблица `leads` была создана до добавления поля «услуга», выполните миграцию один раз:
 
 ```bash
-docker compose exec -T postgres psql -U "${POSTGRES_USER:-app_user}" -d "${POSTGRES_DB:-app_db}" -f - < backend/scripts/add_lead_service_column.sql
+docker compose exec -T postgres psql -U "${POSTGRES_USER:-app_user}" -d "${POSTGRES_DB:-app_db}" -f - < backend/db/migrations/add_lead_service_column.sql
 ```
 
-(Или скопируйте содержимое `backend/scripts/add_lead_service_column.sql` и выполните в pgAdmin.)
+(Или скопируйте содержимое `backend/db/migrations/add_lead_service_column.sql` и выполните в pgAdmin.)
 
 ### Остановка стека
 
@@ -148,6 +148,12 @@ docker compose down -v
 #### Вариант A – Утилита `htpasswd` на хосте
 
 Если `htpasswd` установлен на вашем хосте:
+
+```bash
+bash scripts/create-registry-user.sh
+```
+
+Либо вручную:
 
 ```bash
 mkdir -p registry/auth

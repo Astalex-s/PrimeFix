@@ -1,33 +1,12 @@
-"""
-Модель услуги: отдельная строка в БД (название + описание).
-Админ добавляет услуги по одной; пользователь выбирает из списка и видит описание.
-"""
-from sqlalchemy import Column, Integer, String, Text, DateTime
+"""Репозиторий услуг (CRUD)."""
 from sqlalchemy.orm import Session
-from sqlalchemy.sql import func
-from backend.core.database import Base
+
+from backend.services.model import Service
 
 
-class Service(Base):
-    """
-    Таблица услуг для выбора в форме заявки.
+class ServiceRepository:
+    """CRUD-операции для Service."""
 
-    CREATE TABLE services (
-        id SERIAL PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        description TEXT,
-        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-    );
-    """
-    __tablename__ = "services"
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String(255), nullable=False)
-    description = Column(Text, nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-
-class ServiceCRUD:
     @staticmethod
     def create(db: Session, name: str, description: str | None = None) -> Service:
         s = Service(name=name, description=description)
@@ -46,7 +25,7 @@ class ServiceCRUD:
 
     @staticmethod
     def update(db: Session, service_id: int, **kwargs) -> Service | None:
-        s = ServiceCRUD.get_by_id(db, service_id)
+        s = ServiceRepository.get_by_id(db, service_id)
         if not s:
             return None
         for key, value in kwargs.items():
@@ -58,7 +37,7 @@ class ServiceCRUD:
 
     @staticmethod
     def delete(db: Session, service_id: int) -> bool:
-        s = ServiceCRUD.get_by_id(db, service_id)
+        s = ServiceRepository.get_by_id(db, service_id)
         if not s:
             return False
         db.delete(s)

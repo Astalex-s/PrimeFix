@@ -1,5 +1,6 @@
 """Pydantic-схемы для заявок."""
 from datetime import datetime
+
 from pydantic import BaseModel
 
 

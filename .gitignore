@@ -1,4 +1,5 @@
 # Личные и системные файлы (не часть проекта)
+.npm/
 .bash_history
 .bashrc
 .profile

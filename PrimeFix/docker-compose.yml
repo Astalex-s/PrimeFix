@@ -5,7 +5,7 @@ services:  # описание всех сервисов (контейнеров)
     depends_on:
       - postgres  # запускать после PostgreSQL (для зависимых маршрутов)
       - pgadmin   # запускать после pgAdmin (для удобства, не обязательно)
-      # - backend  # будет активирован при реализации бэкенда
+      - backend   # API доступен только через Nginx по /api/
     ports:
       - "0.0.0.0:80:80"  # проброс порта 80 хоста на порт 80 контейнера (доступ с любого интерфейса)
     volumes:
@@ -75,21 +75,24 @@ services:  # описание всех сервисов (контейнеров)
     networks:
       - internal
 
-  # backend:
-  #   image: ${BACKEND_IMAGE:-backend-image:latest}  # образ бэкенда (по умолчанию backend-image:latest или значение из .env)
-  #   container_name: backend      # имя контейнера бэкенда
-  #   restart: always              # автоматически перезапускать контейнер при сбоях
-  #   environment:
-  #     # TODO: добавить переменные окружения для подключения к PostgreSQL (настроить при реализации бэкенда)
-  #     # DB_HOST=${BACKEND_DB_HOST:-postgres}      # адрес сервиса PostgreSQL во внутренней сети
-  #     # DB_PORT=${BACKEND_DB_PORT:-5432}          # порт PostgreSQL во внутренней сети
-  #     # DB_NAME=${BACKEND_DB_NAME:-app_db}        # имя базы данных
-  #     # DB_USER=${BACKEND_DB_USER:-app_user}      # пользователь базы данных
-  #     # DB_PASSWORD=${BACKEND_DB_PASSWORD:-change_me}  # пароль пользователя
-  #   depends_on:
-  #     - postgres  # запускать после PostgreSQL
-  #   networks:
-  #     - internal  # доступен только внутри внутренней сети через Nginx
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: ${BACKEND_IMAGE:-primefix-backend:latest}
+    container_name: backend
+    restart: always
+    environment:
+      DB_HOST: ${POSTGRES_HOST:-postgres}
+      DB_PORT: ${POSTGRES_PORT:-5432}
+      DB_NAME: ${POSTGRES_DB:-app_db}
+      DB_USER: ${POSTGRES_USER:-app_user}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-change_me}
+    depends_on:
+      - postgres
+    networks:
+      - internal
+    # Порт не пробрасывается на хост — доступ к API только через Nginx (location /api/)
 
 volumes:
   postgres_data:  # том для хранения данных PostgreSQL

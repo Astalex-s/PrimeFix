@@ -1,0 +1,10 @@
+# Личные и системные файлы (не часть проекта)
+.bash_history
+.bashrc
+.profile
+.cache/
+.cursor/
+.cursor-server/
+.docker/
+.ssh/
+*.local

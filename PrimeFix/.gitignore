@@ -1,2 +1,47 @@
+# Секреты и конфиги с паролями (никогда не коммитить)
 .env
+.env.*
+!.env.example
 registry/auth/htpasswd
+*.pem
+*.key
+secrets/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+.env/
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+*.egg-info/
+*.egg
+dist/
+build/
+
+# IDE / редакторы
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# ОС
+.DS_Store
+Thumbs.db
+
+# Логи и временные файлы
+*.log
+*.tmp
+*.temp
+.cache/
+
+# Docker (локальные данные, не образы)
+# registry/auth/ уже выше

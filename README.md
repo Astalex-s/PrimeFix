@@ -83,12 +83,14 @@ docker compose up -d
 ### Обновление фронтенда после изменений
 
 ```bash
+cd PrimeFix
 docker compose build nginx && docker compose up -d nginx
 ```
 
 ### Остановка
 
 ```bash
+cd PrimeFix
 docker compose down          # без удаления данных
 docker compose down -v       # с удалением volumes
 ```
@@ -99,7 +101,7 @@ docker compose down -v       # с удалением volumes
 
 ### Переменные окружения
 
-Параметры задаются в `.env` или в окружении. Основные:
+Параметры задаются в `PrimeFix/.env` или в окружении. Основные:
 
 - `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` — подключение к БД
 - `PGADMIN_DEFAULT_EMAIL`, `PGADMIN_DEFAULT_PASSWORD` — pgAdmin
@@ -117,9 +119,10 @@ curl -X POST http://localhost/api/admin/services/ \
 
 ### Миграции БД
 
-При первом старте таблицы создаются автоматически. Для старых БД:
+При первом старте таблицы создаются автоматически. Для старых БД (выполнять из каталога PrimeFix):
 
 ```bash
+cd PrimeFix
 docker compose exec -T postgres psql -U "${POSTGRES_USER:-app_user}" -d "${POSTGRES_DB:-app_db}" -f - < backend/db/migrations/add_lead_service_column.sql
 ```
 
@@ -132,6 +135,7 @@ docker compose exec -T postgres psql -U "${POSTGRES_USER:-app_user}" -d "${POSTG
 ### Создание пользователя
 
 ```bash
+cd PrimeFix
 bash scripts/create-registry-user.sh
 ```
 
@@ -185,5 +189,6 @@ docker push localhost:5000/backend:latest
 Нужен Docker API 1.44+. Обновление (Ubuntu/Debian):
 
 ```bash
+cd PrimeFix
 sudo bash scripts/upgrade-docker.sh
 ```

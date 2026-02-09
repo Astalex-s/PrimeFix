@@ -339,34 +339,73 @@ async function init() {
 // Управление услугами
 let currentEditingServiceId = null;
 
+const SERVICES_PAGE_SIZE = 10;
+let _allServices = [];
+let _servicesCurrentPage = 1;
+
 async function loadServices() {
   const tbody = document.getElementById('services-table-body');
   if (!tbody) return;
 
   try {
     tbody.innerHTML = '<tr><td colspan="5" class="loading">Загрузка...</td></tr>';
-    const services = await apiRequest('/admin/services/');
-    
-    if (services.length === 0) {
+    const services = await apiRequest('/admin/services/?limit=500');
+    _allServices = services;
+    _servicesCurrentPage = 1;
+
+    if (!services.length) {
       tbody.innerHTML = '<tr><td colspan="5" class="empty">Нет услуг. Добавьте первую услугу.</td></tr>';
+      document.getElementById('services-pagination').style.display = 'none';
       return;
     }
 
-    tbody.innerHTML = services.map(service => `
-      <tr>
-        <td>${service.id}</td>
-        <td>${escapeHtml(service.name)}</td>
-        <td>${escapeHtml(service.description || '—')}</td>
-        <td>${formatDate(service.created_at)}</td>
-        <td class="actions">
-          <button onclick="editService(${service.id})" class="btn btn--small btn--secondary">Редактировать</button>
-          <button onclick="deleteService(${service.id})" class="btn btn--small btn--danger">Удалить</button>
-        </td>
-      </tr>
-    `).join('');
+    renderServicesPage(1);
+    updateServicesPagination();
   } catch (error) {
     tbody.innerHTML = `<tr><td colspan="5" class="error">Ошибка загрузки: ${error.message}</td></tr>`;
+    document.getElementById('services-pagination').style.display = 'none';
   }
+}
+
+function renderServicesPage(page) {
+  const tbody = document.getElementById('services-table-body');
+  if (!tbody) return;
+  const start = (page - 1) * SERVICES_PAGE_SIZE;
+  const slice = _allServices.slice(start, start + SERVICES_PAGE_SIZE);
+  tbody.innerHTML = slice.map(service => `
+    <tr>
+      <td>${service.id}</td>
+      <td>${escapeHtml(service.name)}</td>
+      <td>${escapeHtml(service.description || '—')}</td>
+      <td>${formatDate(service.created_at)}</td>
+      <td class="actions">
+        <button onclick="editService(${service.id})" class="btn btn--small btn--secondary">Редактировать</button>
+        <button onclick="deleteService(${service.id})" class="btn btn--small btn--danger">Удалить</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function updateServicesPagination() {
+  const wrap = document.getElementById('services-pagination');
+  if (!wrap) return;
+  const totalPages = Math.ceil(_allServices.length / SERVICES_PAGE_SIZE) || 1;
+  if (totalPages <= 1) {
+    wrap.style.display = 'none';
+    return;
+  }
+  wrap.style.display = 'flex';
+  wrap.innerHTML = `
+    <span class="pagination__info">Стр. ${_servicesCurrentPage} из ${totalPages}</span>
+    <div class="pagination__arrows">
+      <button type="button" class="pagination__arrow" id="services-prev" ${_servicesCurrentPage <= 1 ? 'disabled' : ''} title="Предыдущая">‹</button>
+      <button type="button" class="pagination__arrow" id="services-next" ${_servicesCurrentPage >= totalPages ? 'disabled' : ''} title="Следующая">›</button>
+    </div>
+  `;
+  const prev = document.getElementById('services-prev');
+  const next = document.getElementById('services-next');
+  if (prev && !prev.disabled) prev.addEventListener('click', () => { _servicesCurrentPage--; renderServicesPage(_servicesCurrentPage); updateServicesPagination(); scrollToTop(); });
+  if (next && !next.disabled) next.addEventListener('click', () => { _servicesCurrentPage++; renderServicesPage(_servicesCurrentPage); updateServicesPagination(); scrollToTop(); });
 }
 
 function escapeHtml(text) {
@@ -554,6 +593,9 @@ function logout() {
 // ==========================================
 // Аналитика заявок (скоринг лидов)
 // ==========================================
+const LEADS_PAGE_SIZE = 10;
+let _allLeads = [];
+let _leadsCurrentPage = 1;
 
 async function loadScoredLeads() {
   const tbody = document.getElementById('leads-table-body');
@@ -562,8 +604,10 @@ async function loadScoredLeads() {
   try {
     tbody.innerHTML = '<tr><td colspan="8" class="loading">Загрузка...</td></tr>';
     const leads = await apiRequest('/leads/scored/?limit=500');
+    _allLeads = leads;
+    _leadsCurrentPage = 1;
 
-    // Статистика
+    // Статистика по всем заявкам
     let hot = 0, warm = 0, cold = 0;
     leads.forEach(l => {
       const t = l.scoring.temperature;
@@ -578,27 +622,64 @@ async function loadScoredLeads() {
 
     if (!leads.length) {
       tbody.innerHTML = '<tr><td colspan="8" class="empty">Нет заявок.</td></tr>';
+      document.getElementById('leads-pagination').style.display = 'none';
       return;
     }
 
-    tbody.innerHTML = leads.map(l => {
-      const s = l.scoring;
-      const cls = s.temperature === 'горячий' ? 'hot' : s.temperature === 'тёплый' ? 'warm' : 'cold';
-      return `
-        <tr onclick="openLeadModal(${l.id})" data-lead='${JSON.stringify(l).replace(/'/g, "&#39;")}'>
-          <td><span class="badge badge--${cls}">${s.score}</span></td>
-          <td>${escapeHtml(l.surname)} ${escapeHtml(l.name)}</td>
-          <td>${escapeHtml(l.service || '—')}</td>
-          <td>${escapeHtml(l.budget || '—')}</td>
-          <td>${escapeHtml(l.deadline || '—')}</td>
-          <td>${escapeHtml(s.department)}</td>
-          <td><span class="badge badge--${s.needs_personal_manager ? 'yes' : 'no'}">${s.needs_personal_manager ? 'Да' : 'Нет'}</span></td>
-          <td>${escapeHtml(s.priority)}</td>
-        </tr>`;
-    }).join('');
+    renderLeadsPage(1);
+    updateLeadsPagination();
   } catch (error) {
     tbody.innerHTML = `<tr><td colspan="8" class="error">Ошибка: ${error.message}</td></tr>`;
+    document.getElementById('leads-pagination').style.display = 'none';
   }
+}
+
+function renderLeadsPage(page) {
+  const tbody = document.getElementById('leads-table-body');
+  if (!tbody) return;
+  const start = (page - 1) * LEADS_PAGE_SIZE;
+  const slice = _allLeads.slice(start, start + LEADS_PAGE_SIZE);
+  tbody.innerHTML = slice.map(l => {
+    const s = l.scoring;
+    const cls = s.temperature === 'горячий' ? 'hot' : s.temperature === 'тёплый' ? 'warm' : 'cold';
+    return `
+      <tr onclick="openLeadModal(${l.id})" data-lead='${JSON.stringify(l).replace(/'/g, "&#39;")}'>
+        <td><span class="badge badge--${cls}">${s.score}</span></td>
+        <td>${escapeHtml(l.surname)} ${escapeHtml(l.name)}</td>
+        <td>${escapeHtml(l.service || '—')}</td>
+        <td>${escapeHtml(l.budget || '—')}</td>
+        <td>${escapeHtml(l.deadline || '—')}</td>
+        <td>${escapeHtml(s.department)}</td>
+        <td><span class="badge badge--${s.needs_personal_manager ? 'yes' : 'no'}">${s.needs_personal_manager ? 'Да' : 'Нет'}</span></td>
+        <td>${escapeHtml(s.priority)}</td>
+      </tr>`;
+  }).join('');
+}
+
+function updateLeadsPagination() {
+  const wrap = document.getElementById('leads-pagination');
+  if (!wrap) return;
+  const totalPages = Math.ceil(_allLeads.length / LEADS_PAGE_SIZE) || 1;
+  if (totalPages <= 1) {
+    wrap.style.display = 'none';
+    return;
+  }
+  wrap.style.display = 'flex';
+  wrap.innerHTML = `
+    <span class="pagination__info">Стр. ${_leadsCurrentPage} из ${totalPages}</span>
+    <div class="pagination__arrows">
+      <button type="button" class="pagination__arrow" id="leads-prev" ${_leadsCurrentPage <= 1 ? 'disabled' : ''} title="Предыдущая">‹</button>
+      <button type="button" class="pagination__arrow" id="leads-next" ${_leadsCurrentPage >= totalPages ? 'disabled' : ''} title="Следующая">›</button>
+    </div>
+  `;
+  const prev = document.getElementById('leads-prev');
+  const next = document.getElementById('leads-next');
+  if (prev && !prev.disabled) prev.addEventListener('click', () => { _leadsCurrentPage--; renderLeadsPage(_leadsCurrentPage); updateLeadsPagination(); scrollToTop(); });
+  if (next && !next.disabled) next.addEventListener('click', () => { _leadsCurrentPage++; renderLeadsPage(_leadsCurrentPage); updateLeadsPagination(); scrollToTop(); });
+}
+
+function scrollToTop() {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function setText(id, val) {

@@ -4,13 +4,15 @@ from sqlalchemy.orm import Session
 
 from backend.admin.repository import AdminSettingRepository
 from backend.admin.schema import AdminSettingCreate, AdminSettingResponse, AdminSettingUpdate
+from backend.auth.dependencies import get_current_admin
+from backend.auth.model import Admin
 from backend.core.database import get_db
 
-router = APIRouter(prefix="/admin", tags=["admin"])
+router = APIRouter(prefix="/admin/settings", tags=["admin"])
 
 
 @router.post("/", response_model=AdminSettingResponse)
-def create_setting(data: AdminSettingCreate, db: Session = Depends(get_db)):
+def create_setting(data: AdminSettingCreate, db: Session = Depends(get_db), admin: Admin = Depends(get_current_admin)):
     existing = AdminSettingRepository.get_by_key(db, data.key)
     if existing:
         raise HTTPException(status_code=400, detail="Setting with this key already exists")
@@ -18,12 +20,12 @@ def create_setting(data: AdminSettingCreate, db: Session = Depends(get_db)):
 
 
 @router.get("/", response_model=list[AdminSettingResponse])
-def list_settings(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def list_settings(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), admin: Admin = Depends(get_current_admin)):
     return AdminSettingRepository.get_all(db, skip=skip, limit=limit)
 
 
 @router.get("/key/{key}", response_model=AdminSettingResponse)
-def get_setting_by_key(key: str, db: Session = Depends(get_db)):
+def get_setting_by_key(key: str, db: Session = Depends(get_db), admin: Admin = Depends(get_current_admin)):
     setting = AdminSettingRepository.get_by_key(db, key)
     if not setting:
         raise HTTPException(status_code=404, detail="Setting not found")
@@ -31,7 +33,7 @@ def get_setting_by_key(key: str, db: Session = Depends(get_db)):
 
 
 @router.get("/{setting_id}", response_model=AdminSettingResponse)
-def get_setting(setting_id: int, db: Session = Depends(get_db)):
+def get_setting(setting_id: int, db: Session = Depends(get_db), admin: Admin = Depends(get_current_admin)):
     setting = AdminSettingRepository.get_by_id(db, setting_id)
     if not setting:
         raise HTTPException(status_code=404, detail="Setting not found")
@@ -39,7 +41,11 @@ def get_setting(setting_id: int, db: Session = Depends(get_db)):
 
 
 @router.patch("/{setting_id}", response_model=AdminSettingResponse)
-def update_setting(setting_id: int, data: AdminSettingUpdate, db: Session = Depends(get_db)):
+def update_setting(setting_id: int, data: AdminSettingUpdate, db: Session = Depends(get_db), admin: Admin = Depends(get_current_admin)):
+    if data.key is not None:
+        existing = AdminSettingRepository.get_by_key(db, data.key)
+        if existing and existing.id != setting_id:
+            raise HTTPException(status_code=400, detail="Setting with this key already exists")
     setting = AdminSettingRepository.update(db, setting_id, **data.model_dump(exclude_unset=True))
     if not setting:
         raise HTTPException(status_code=404, detail="Setting not found")
@@ -47,6 +53,6 @@ def update_setting(setting_id: int, data: AdminSettingUpdate, db: Session = Depe
 
 
 @router.delete("/{setting_id}", status_code=204)
-def delete_setting(setting_id: int, db: Session = Depends(get_db)):
+def delete_setting(setting_id: int, db: Session = Depends(get_db), admin: Admin = Depends(get_current_admin)):
     if not AdminSettingRepository.delete(db, setting_id):
         raise HTTPException(status_code=404, detail="Setting not found")

@@ -14,6 +14,7 @@ class AdminSettingCreate(AdminSettingBase):
 
 
 class AdminSettingUpdate(BaseModel):
+    key: str | None = None
     value: str | None = None
 
 

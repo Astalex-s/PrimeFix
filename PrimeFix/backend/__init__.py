@@ -1,1 +1,1 @@
-# Backend package
+"""PrimeFix Backend — API для управления заявками, метриками и услугами."""

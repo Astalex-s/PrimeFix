@@ -1,3 +1,4 @@
-from backend.core.database import get_db, engine, SessionLocal
+"""Ядро приложения: конфигурация и подключение к БД."""
+from backend.core.database import Base, SessionLocal, engine, get_db
 
-__all__ = ["get_db", "engine", "SessionLocal"]
+__all__ = ["Base", "SessionLocal", "engine", "get_db"]

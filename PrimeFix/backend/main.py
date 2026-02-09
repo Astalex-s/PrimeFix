@@ -1,7 +1,9 @@
 """
 PrimeFix API — точка входа приложения.
 Доступ к API только через Nginx (проксирует /api/ на backend:8080).
+Документация (/api/docs, /api/redoc) снаружи закрыта в Nginx; в продакшене можно отключить и в приложении (DISABLE_API_DOCS=1).
 """
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -32,13 +34,15 @@ async def lifespan(app: FastAPI):
     yield
 
 
+_disable_docs = os.environ.get("DISABLE_API_DOCS", "").strip().lower() in ("1", "true", "yes")
+
 app = FastAPI(
     title="PrimeFix API",
     description="Бэкенд для заявок и метрик",
     lifespan=lifespan,
-    docs_url="/api/docs",
-    redoc_url="/api/redoc",
-    openapi_url="/api/openapi.json",
+    docs_url=None if _disable_docs else "/api/docs",
+    redoc_url=None if _disable_docs else "/api/redoc",
+    openapi_url=None if _disable_docs else "/api/openapi.json",
 )
 
 app.add_middleware(

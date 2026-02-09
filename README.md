@@ -161,7 +161,9 @@ curl -X POST http://localhost/api/admin/services/ \
 
 ## Безопасность
 
-- PostgreSQL и backend не проброшены на хост — доступ только из Docker-сети (Nginx проксирует `/api/` на backend).
+- PostgreSQL и backend не проброшены на хост — доступ к API только из Docker-сети (Nginx проксирует `/api/` на backend).
+- Документация API (`/api/docs`, `/api/redoc`, `/api/openapi.json`) снаружи закрыта: Nginx возвращает 403. Рабочие эндпоинты (`/api/leads/`, `/api/services/` и т.д.) по-прежнему доступны для сайта и админки.
+- В продакшене можно дополнительно отключить docs в приложении: переменная окружения `DISABLE_API_DOCS=1` для контейнера backend.
 - Снаружи открыт только порт **80** (Nginx). pgAdmin и Registry по умолчанию отключены.
 - Секреты в `.env`; файл в `.gitignore`, в репозиторий не попадает.
 

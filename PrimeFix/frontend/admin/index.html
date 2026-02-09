@@ -81,6 +81,55 @@
             </div>
           </div>
 
+          <!-- ═══════ Аналитика заявок ═══════ -->
+          <div class="admin-card" id="leads-card">
+            <div class="admin-card__header">
+              <h2 class="admin-card__title">Заявки — интеллектуальный анализ</h2>
+              <button type="button" id="refresh-leads-btn" class="btn btn--primary">Обновить</button>
+            </div>
+
+            <!-- Статистика -->
+            <div class="leads-stats" id="leads-stats">
+              <div class="leads-stat leads-stat--total"><span class="leads-stat__val" id="ls-total">—</span><span class="leads-stat__lbl">Всего</span></div>
+              <div class="leads-stat leads-stat--hot"><span class="leads-stat__val" id="ls-hot">—</span><span class="leads-stat__lbl">Горячих</span></div>
+              <div class="leads-stat leads-stat--warm"><span class="leads-stat__val" id="ls-warm">—</span><span class="leads-stat__lbl">Тёплых</span></div>
+              <div class="leads-stat leads-stat--cold"><span class="leads-stat__val" id="ls-cold">—</span><span class="leads-stat__lbl">Холодных</span></div>
+            </div>
+
+            <!-- Таблица лидов -->
+            <div class="services-table-container">
+              <table class="services-table leads-table">
+                <thead>
+                  <tr>
+                    <th>Балл</th>
+                    <th>Имя</th>
+                    <th>Услуга</th>
+                    <th>Бюджет</th>
+                    <th>Срок</th>
+                    <th>Отдел</th>
+                    <th>Менеджер</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="leads-table-body">
+                  <tr><td colspan="8" class="loading">Загрузка...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Модальное окно с деталями заявки -->
+          <div id="lead-detail-modal" class="modal" style="display:none;">
+            <div class="modal-content modal-content--wide">
+              <div class="modal-header">
+                <h3 id="lead-modal-title">Детали заявки</h3>
+                <button type="button" class="modal-close" onclick="closeLeadModal()">&times;</button>
+              </div>
+              <div id="lead-modal-body"></div>
+            </div>
+          </div>
+
+          <!-- ═══════ Управление услугами ═══════ -->
           <!-- Управление услугами -->
           <div class="admin-card">
             <div class="admin-card__header">

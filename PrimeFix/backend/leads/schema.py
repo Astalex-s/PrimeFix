@@ -58,3 +58,20 @@ class LeadResponse(LeadBase):
 
     class Config:
         from_attributes = True
+
+
+class LeadScoreInfo(BaseModel):
+    """Результат скоринга лида."""
+
+    score: int
+    temperature: str
+    priority: str
+    needs_personal_manager: bool
+    department: str
+    summary: str
+
+
+class LeadScoredResponse(LeadResponse):
+    """Лид с результатами интеллектуального анализа."""
+
+    scoring: LeadScoreInfo

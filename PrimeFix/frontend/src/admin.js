@@ -323,11 +323,13 @@ async function init() {
       if (adminInfoElement) {
         adminInfoElement.textContent = `Вы вошли как: ${adminInfo.login} (${adminInfo.email})`;
       }
-      // Инициализируем обработчики для услуг и настроек
+      // Инициализируем обработчики
       initServicesHandlers();
       initSettingsHandlers();
-      // Загружаем список услуг и настроек
+      initLeadsHandlers();
+      // Загружаем данные
       setTimeout(() => {
+        loadScoredLeads();
         loadServices();
         loadSettings();
       }, 100);
@@ -730,6 +732,8 @@ window.closeServiceModal = closeServiceModal;
 window.editSetting = editSetting;
 window.deleteSetting = deleteSetting;
 window.closeSettingModal = closeSettingModal;
+window.openLeadModal = openLeadModal;
+window.closeLeadModal = closeLeadModal;
 
 // Выход
 function logout() {
@@ -738,6 +742,135 @@ function logout() {
 }
 
 
+// ==========================================
+// Аналитика заявок (скоринг лидов)
+// ==========================================
+
+async function loadScoredLeads() {
+  const tbody = document.getElementById('leads-table-body');
+  if (!tbody) return;
+
+  try {
+    tbody.innerHTML = '<tr><td colspan="8" class="loading">Загрузка...</td></tr>';
+    const leads = await apiRequest('/leads/scored/?limit=500');
+
+    // Статистика
+    let hot = 0, warm = 0, cold = 0;
+    leads.forEach(l => {
+      const t = l.scoring.temperature;
+      if (t === 'горячий') hot++;
+      else if (t === 'тёплый') warm++;
+      else cold++;
+    });
+    setText('ls-total', leads.length);
+    setText('ls-hot', hot);
+    setText('ls-warm', warm);
+    setText('ls-cold', cold);
+
+    if (!leads.length) {
+      tbody.innerHTML = '<tr><td colspan="8" class="empty">Нет заявок.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = leads.map(l => {
+      const s = l.scoring;
+      const cls = s.temperature === 'горячий' ? 'hot' : s.temperature === 'тёплый' ? 'warm' : 'cold';
+      return `
+        <tr onclick="openLeadModal(${l.id})" data-lead='${JSON.stringify(l).replace(/'/g, "&#39;")}'>
+          <td><span class="badge badge--${cls}">${s.score}</span></td>
+          <td>${escapeHtml(l.surname)} ${escapeHtml(l.name)}</td>
+          <td>${escapeHtml(l.service || '—')}</td>
+          <td>${escapeHtml(l.budget || '—')}</td>
+          <td>${escapeHtml(l.deadline || '—')}</td>
+          <td>${escapeHtml(s.department)}</td>
+          <td><span class="badge badge--${s.needs_personal_manager ? 'yes' : 'no'}">${s.needs_personal_manager ? 'Да' : 'Нет'}</span></td>
+          <td>${escapeHtml(s.priority)}</td>
+        </tr>`;
+    }).join('');
+  } catch (error) {
+    tbody.innerHTML = `<tr><td colspan="8" class="error">Ошибка: ${error.message}</td></tr>`;
+  }
+}
+
+function setText(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = val;
+}
+
+// Открытие деталей заявки
+let _scoredLeadsCache = [];
+function openLeadModal(leadId) {
+  const row = document.querySelector(`tr[onclick*="openLeadModal(${leadId})"]`);
+  if (!row) return;
+  let lead;
+  try { lead = JSON.parse(row.dataset.lead); } catch { return; }
+
+  const s = lead.scoring;
+  const cls = s.temperature === 'горячий' ? 'hot' : s.temperature === 'тёплый' ? 'warm' : 'cold';
+
+  const body = document.getElementById('lead-modal-body');
+  const title = document.getElementById('lead-modal-title');
+  title.textContent = `${lead.surname} ${lead.name} ${lead.patronymic || ''}`.trim();
+
+  const scoreColor = cls === 'hot' ? '#ef4444' : cls === 'warm' ? '#f59e0b' : '#3b82f6';
+
+  body.innerHTML = `
+    <div class="lead-scoring-bar">
+      <div class="lead-scoring-bar__score" style="color:${scoreColor}">${s.score}</div>
+      <div class="lead-scoring-bar__meta">
+        <p><strong>Температура:</strong> <span class="badge badge--${cls}">${s.temperature}</span>  &nbsp; <strong>Приоритет:</strong> ${s.priority}</p>
+        <p><strong>Персональный менеджер:</strong> ${s.needs_personal_manager ? 'Рекомендуется' : 'Не требуется'}  &nbsp; <strong>Отдел:</strong> ${s.department}</p>
+        <p style="color:var(--color-text-muted);font-size:0.85rem;margin-top:6px">${escapeHtml(s.summary)}</p>
+      </div>
+    </div>
+    <div class="lead-detail">
+      ${detailItem('Услуга', lead.service)}
+      ${detailItem('Бюджет', lead.budget)}
+      ${detailItem('Срок', lead.deadline)}
+      ${detailItem('Ниша', lead.niche)}
+      ${detailItem('Размер компании', lead.company_size)}
+      ${detailItem('Размер бизнеса', lead.business_size)}
+      ${detailItem('Роль', lead.role)}
+      ${detailItem('Объём задач', lead.task_volume)}
+      ${detailItem('Объём потребности', lead.need_volume)}
+      ${detailItem('Тип задачи', lead.task_type)}
+      ${detailItem('Интерес к продукту', lead.product_interest)}
+      ${detailItem('Способ связи', lead.contact_method)}
+      ${detailItem('Предпочтительная связь', lead.preferred_contact_method)}
+      ${detailItem('Удобное время', lead.convenient_time)}
+      ${detailItem('О бизнесе', lead.business_info, true)}
+      ${detailItem('Комментарий', lead.comments, true)}
+      ${detailItem('Дата заявки', lead.created_at ? formatDate(lead.created_at) : '—')}
+    </div>
+  `;
+
+  document.getElementById('lead-detail-modal').style.display = 'flex';
+}
+
+function detailItem(label, value, full) {
+  return `<div class="lead-detail__item${full ? ' lead-detail__item--full' : ''}">
+    <span class="lead-detail__label">${escapeHtml(label)}</span>
+    <span class="lead-detail__value">${escapeHtml(value || '—')}</span>
+  </div>`;
+}
+
+function closeLeadModal() {
+  document.getElementById('lead-detail-modal').style.display = 'none';
+}
+
+// Инициализация обработчиков для лидов
+let leadsHandlersInitialized = false;
+function initLeadsHandlers() {
+  if (leadsHandlersInitialized) return;
+  leadsHandlersInitialized = true;
+
+  const refreshBtn = document.getElementById('refresh-leads-btn');
+  if (refreshBtn) refreshBtn.addEventListener('click', loadScoredLeads);
+
+  const modal = document.getElementById('lead-detail-modal');
+  if (modal) modal.addEventListener('click', (e) => { if (e.target === modal) closeLeadModal(); });
+}
+
 // Экспорт для использования в других скриптах
 window.adminAuth = {
   logout,
@@ -745,4 +878,5 @@ window.adminAuth = {
   isAuthenticated,
   loadServices,
   loadSettings,
+  loadScoredLeads,
 };

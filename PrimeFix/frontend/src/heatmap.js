@@ -26,11 +26,12 @@ const opacitySelect = document.getElementById('opacity-select');
 const refreshBtn = document.getElementById('refresh-btn');
 
 const dSessions = document.getElementById('d-sessions');
-const dPoints = document.getElementById('d-points');
-const dTotalTime = document.getElementById('d-total-time');
-const dTotalTimeSub = document.getElementById('d-total-time-sub');
-const dAvgTime = document.getElementById('d-avg-time');
-const dMaxTime = document.getElementById('d-max-time');
+const dAvgDay = document.getElementById('d-avg-day');
+const dAvgDaySub = document.getElementById('d-avg-day-sub');
+const dAvgWeek = document.getElementById('d-avg-week');
+const dAvgWeekSub = document.getElementById('d-avg-week-sub');
+const dAvgMonth = document.getElementById('d-avg-month');
+const dAvgMonthSub = document.getElementById('d-avg-month-sub');
 const dClicksBlock = document.getElementById('d-clicks-block');
 const dClicks = document.getElementById('d-clicks');
 
@@ -175,23 +176,33 @@ async function loadAndRender() {
     const records = await r.json();
     allPoints = [];
 
+    const now = new Date();
+    const dayAgo = new Date(now - 24 * 60 * 60 * 1000);
+    const weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+    const monthAgo = new Date(now - 30 * 24 * 60 * 60 * 1000);
+
     let totalSessions = 0;
-    let totalSeconds = 0;
-    let maxSeconds = 0;
-    const clicksAgg = {};
+    const clicksRaw = {};
+    // Для подсчёта среднего по периодам: {сессий, сумма_секунд}
+    const period = { day: { n: 0, s: 0 }, week: { n: 0, s: 0 }, month: { n: 0, s: 0 } };
 
     records.forEach((rec) => {
       totalSessions++;
       const t = rec.time_on_page_seconds || 0;
-      totalSeconds += t;
-      if (t > maxSeconds) maxSeconds = t;
+      const createdAt = rec.created_at ? new Date(rec.created_at) : null;
+
+      if (createdAt) {
+        if (createdAt >= dayAgo)   { period.day.n++;   period.day.s += t; }
+        if (createdAt >= weekAgo)  { period.week.n++;  period.week.s += t; }
+        if (createdAt >= monthAgo) { period.month.n++; period.month.s += t; }
+      }
 
       // Клики
       if (rec.buttons_clicked) {
         try {
           const c = JSON.parse(rec.buttons_clicked);
           for (const [k, v] of Object.entries(c))
-            clicksAgg[k] = (clicksAgg[k] || 0) + v;
+            clicksRaw[k] = (clicksRaw[k] || 0) + v;
         } catch {}
       }
 
@@ -213,17 +224,19 @@ async function loadAndRender() {
 
     // ── Dashboard ───────────────────
     dSessions.textContent = totalSessions;
-    dPoints.textContent = allPoints.length.toLocaleString();
-    dTotalTime.textContent = fmtTime(totalSeconds);
-    dTotalTimeSub.textContent = totalSeconds + ' сек';
-    dAvgTime.textContent = totalSessions
-      ? fmtTime(Math.round(totalSeconds / totalSessions))
-      : '—';
-    dMaxTime.textContent = fmtTime(maxSeconds);
+    fillPeriodCard(dAvgDay, dAvgDaySub, period.day, 'сегодня');
+    fillPeriodCard(dAvgWeek, dAvgWeekSub, period.week, 'за 7 дней');
+    fillPeriodCard(dAvgMonth, dAvgMonthSub, period.month, 'за 30 дней');
 
-    const sorted = Object.entries(clicksAgg)
+    // Клики: человекочитаемые названия
+    const humanized = {};
+    for (const [raw, count] of Object.entries(clicksRaw)) {
+      const label = humanizeClickLabel(raw);
+      if (label) humanized[label] = (humanized[label] || 0) + count;
+    }
+    const sorted = Object.entries(humanized)
       .sort((a, b) => b[1] - a[1])
-      .slice(0, 10);
+      .slice(0, 8);
     if (sorted.length) {
       dClicksBlock.style.display = '';
       dClicks.innerHTML = sorted
@@ -242,12 +255,62 @@ async function loadAndRender() {
   }
 }
 
+function fillPeriodCard(valEl, subEl, data, periodLabel) {
+  if (data.n === 0) {
+    valEl.textContent = '—';
+    subEl.textContent = 'нет данных ' + periodLabel;
+    return;
+  }
+  const avg = Math.round(data.s / data.n);
+  valEl.textContent = fmtTime(avg);
+  subEl.textContent = data.n + ' сессий ' + periodLabel;
+}
+
 function fmtTime(sec) {
   if (sec < 60) return sec + ' сек';
   const m = Math.floor(sec / 60);
   const s = sec % 60;
   if (m < 60) return m + ' мин ' + s + ' сек';
   return Math.floor(m / 60) + ' ч ' + (m % 60) + ' мин';
+}
+
+// ── Человекочитаемые названия кликов ─────────────────────────────────
+
+const FIELD_NAMES = {
+  name: 'Имя', surname: 'Фамилия', patronymic: 'Отчество',
+  service: 'Услуга', business_info: 'О бизнесе', niche: 'Ниша',
+  company_size: 'Размер компании', role: 'Роль',
+  business_size: 'Размер бизнеса', budget: 'Бюджет',
+  task_volume: 'Объём задач', need_volume: 'Потребность',
+  deadline: 'Срок', task_type: 'Тип задачи',
+  product_interest: 'Интерес к продукту', contact_method: 'Способ связи',
+  preferred_contact_method: 'Предпочтительный способ связи',
+  convenient_time: 'Удобное время', comments: 'Комментарий',
+  'admin-login': 'Логин (админ)', 'admin-password': 'Пароль (админ)',
+  'submit-btn': 'Кнопка отправки',
+};
+
+function humanizeClickLabel(raw) {
+  if (!raw || raw.length < 2) return null;
+
+  // tag#id  →  «Поле: Имя»
+  const m = raw.match(/^[a-z]+#(.+)$/);
+  if (m) {
+    const id = m[1];
+    return FIELD_NAMES[id] ? 'Поле «' + FIELD_NAMES[id] + '»' : null;
+  }
+
+  // Голые теги (div, span, p, label, input, textarea, ...) — не информативны
+  if (/^[a-z]+$/.test(raw)) return null;
+
+  // CSS-селекторы — не информативны
+  if (raw.includes('.') && !raw.includes(' ')) return null;
+
+  // href-подобные
+  if (raw.startsWith('#') || raw.startsWith('/')) return null;
+
+  // Остальное — читаемый текст кнопки/ссылки
+  return raw;
 }
 
 function esc(s) {

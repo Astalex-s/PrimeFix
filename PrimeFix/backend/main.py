@@ -17,6 +17,7 @@ from backend.lead_metrics.router import router as lead_metrics_router
 from backend.services.router import router as services_router
 from backend.services.admin_router import router as admin_services_router
 from backend.admin.router import router as admin_router
+from backend.behavior_metrics.router import router as behavior_metrics_router
 
 # Импорт моделей для регистрации в SQLAlchemy metadata
 import backend.admin.model  # noqa: F401
@@ -24,6 +25,7 @@ import backend.auth.model  # noqa: F401
 import backend.lead_metrics.model  # noqa: F401
 import backend.leads.model  # noqa: F401
 import backend.services.model  # noqa: F401
+import backend.behavior_metrics.model  # noqa: F401
 
 
 @asynccontextmanager
@@ -58,6 +60,7 @@ app.include_router(lead_metrics_router, prefix="/api")
 app.include_router(services_router, prefix="/api")
 app.include_router(admin_services_router, prefix="/api")
 app.include_router(admin_router, prefix="/api")
+app.include_router(behavior_metrics_router, prefix="/api")
 
 
 @app.get("/api/health")

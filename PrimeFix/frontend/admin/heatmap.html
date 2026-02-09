@@ -9,175 +9,65 @@
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --color-bg: #0d0d0d;
-      --color-surface: #1a1a1a;
-      --color-border: rgba(201,162,39,0.25);
-      --color-gold: #c9a227;
-      --color-gold-light: #e5c76b;
-      --color-text: #e8e6e3;
-      --color-text-muted: #9a958d;
-      --font-body: 'Montserrat', sans-serif;
-      --radius: 6px;
+      --bg: #0d0d0d; --surface: #1a1a1a; --border: rgba(201,162,39,.25);
+      --gold: #c9a227; --gold-l: #e5c76b; --txt: #e8e6e3; --muted: #9a958d;
+      --font: 'Montserrat', sans-serif; --r: 6px;
     }
-    *, *::before, *::after { box-sizing: border-box; }
-    body {
-      margin: 0;
-      background: var(--color-bg);
-      color: var(--color-text);
-      font-family: var(--font-body);
-      font-size: 15px;
-    }
+    *,*::before,*::after{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--txt);font-family:var(--font);font-size:15px}
 
-    /* ── Toolbar ──────────────────────────────────── */
-    .toolbar {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 1000;
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      padding: 12px 24px;
-      background: rgba(13,13,13,0.95);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--color-border);
-    }
-    .toolbar__title {
-      font-weight: 600;
-      color: var(--color-gold-light);
-      font-size: 1rem;
-      margin-right: auto;
-    }
-    .toolbar a, .toolbar button {
-      font-family: var(--font-body);
-      font-size: 0.85rem;
-      padding: 8px 16px;
-      border-radius: var(--radius);
-      text-decoration: none;
-      cursor: pointer;
-      border: 1px solid var(--color-border);
-      background: var(--color-surface);
-      color: var(--color-text-muted);
-      transition: all 0.2s;
-    }
-    .toolbar a:hover, .toolbar button:hover {
-      border-color: var(--color-gold);
-      color: var(--color-gold);
-    }
-    .toolbar .active {
-      background: var(--color-gold);
-      color: var(--color-bg);
-      border-color: var(--color-gold);
-    }
-    .toolbar select {
-      font-family: var(--font-body);
-      font-size: 0.85rem;
-      padding: 8px 12px;
-      border-radius: var(--radius);
-      border: 1px solid var(--color-border);
-      background: var(--color-surface);
-      color: var(--color-text);
-      cursor: pointer;
-    }
-    .toolbar__stats {
-      font-size: 0.8rem;
-      color: var(--color-text-muted);
-    }
+    /* ── Toolbar ─────────────────────── */
+    .toolbar{position:fixed;top:0;left:0;right:0;z-index:1000;display:flex;align-items:center;gap:12px;
+      padding:10px 20px;background:rgba(13,13,13,.96);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);flex-wrap:wrap}
+    .toolbar__title{font-weight:600;color:var(--gold-l);font-size:1rem;margin-right:auto}
+    .toolbar a,.toolbar button,.toolbar select{font-family:var(--font);font-size:.8rem;padding:7px 14px;
+      border-radius:var(--r);border:1px solid var(--border);background:var(--surface);color:var(--muted);
+      text-decoration:none;cursor:pointer;transition:all .2s}
+    .toolbar a:hover,.toolbar button:hover{border-color:var(--gold);color:var(--gold)}
+    .toolbar select{color:var(--txt)}
 
-    /* ── Heatmap container ────────────────────────── */
-    .heatmap-wrapper {
-      position: relative;
-      margin-top: 60px;
-      width: 100%;
-      overflow: auto;
-    }
-    .heatmap-wrapper iframe {
-      display: block;
-      width: 100%;
-      border: none;
-      pointer-events: none;
-    }
-    .heatmap-wrapper canvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      pointer-events: none;
-    }
+    /* ── Dashboard ───────────────────── */
+    .dashboard{margin-top:52px;padding:16px 20px;background:var(--surface);border-bottom:1px solid var(--border);
+      display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px}
+    .dash-card{padding:14px 16px;background:var(--bg);border:1px solid var(--border);border-radius:var(--r)}
+    .dash-card__label{font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);font-weight:500;margin:0 0 4px}
+    .dash-card__value{font-size:1.4rem;font-weight:600;color:var(--txt);margin:0}
+    .dash-card__sub{font-size:.75rem;color:var(--muted);margin:4px 0 0}
+    .dash-clicks{padding:14px 16px;background:var(--bg);border:1px solid var(--border);border-radius:var(--r);
+      grid-column:1/-1}
+    .dash-clicks__title{font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);font-weight:500;margin:0 0 8px}
+    .clicks-list{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px}
+    .clicks-list li{padding:4px 10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);font-size:.8rem;color:var(--txt)}
+    .clicks-list .count{color:var(--gold);font-weight:600;margin-left:4px}
 
-    /* ── Login overlay ────────────────────────────── */
-    .login-overlay {
-      position: fixed;
-      inset: 0;
-      z-index: 2000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: var(--color-bg);
-    }
-    .login-overlay.hidden { display: none; }
-    .login-box {
-      background: var(--color-surface);
-      border: 1px solid var(--color-border);
-      border-radius: 12px;
-      padding: 40px;
-      width: 360px;
-      text-align: center;
-    }
-    .login-box h2 {
-      margin: 0 0 8px;
-      color: var(--color-gold-light);
-    }
-    .login-box p {
-      color: var(--color-text-muted);
-      margin: 0 0 24px;
-      font-size: 0.9rem;
-    }
-    .login-box .error {
-      color: #c75c5c;
-      font-size: 0.85rem;
-      margin: 0 0 12px;
-      min-height: 1.2em;
-    }
-    .login-box input {
-      width: 100%;
-      padding: 12px 14px;
-      margin-bottom: 12px;
-      font-family: var(--font-body);
-      font-size: 1rem;
-      color: var(--color-text);
-      background: var(--color-bg);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius);
-    }
-    .login-box input:focus {
-      outline: none;
-      border-color: var(--color-gold);
-    }
-    .login-box button {
-      width: 100%;
-      padding: 14px;
-      font-family: var(--font-body);
-      font-size: 1rem;
-      font-weight: 500;
-      background: var(--color-gold);
-      color: var(--color-bg);
-      border: none;
-      border-radius: var(--radius);
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    .login-box button:hover { background: var(--color-gold-light); }
+    /* ── Heatmap ─────────────────────── */
+    .heatmap-wrap{position:relative;width:100%;overflow-x:hidden}
+    .heatmap-wrap iframe{display:block;width:100%;border:none;pointer-events:none}
+    .heatmap-wrap canvas{position:absolute;top:0;left:0;pointer-events:none}
+
+    /* ── Login ───────────────────────── */
+    .login-overlay{position:fixed;inset:0;z-index:2000;display:flex;align-items:center;justify-content:center;background:var(--bg)}
+    .login-overlay.hidden{display:none}
+    .login-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:40px;width:360px;text-align:center}
+    .login-box h2{margin:0 0 8px;color:var(--gold-l)}
+    .login-box p{color:var(--muted);margin:0 0 24px;font-size:.9rem}
+    .login-box .err{color:#c75c5c;font-size:.85rem;margin:0 0 12px;min-height:1.2em}
+    .login-box input{width:100%;padding:12px 14px;margin-bottom:12px;font-family:var(--font);font-size:1rem;
+      color:var(--txt);background:var(--bg);border:1px solid var(--border);border-radius:var(--r)}
+    .login-box input:focus{outline:none;border-color:var(--gold)}
+    .login-box button{width:100%;padding:14px;font-family:var(--font);font-size:1rem;font-weight:500;
+      background:var(--gold);color:var(--bg);border:none;border-radius:var(--r);cursor:pointer;transition:background .2s}
+    .login-box button:hover{background:var(--gold-l)}
   </style>
 </head>
 <body>
 
-  <!-- Login overlay (если нет токена) -->
+  <!-- Login -->
   <div id="login-overlay" class="login-overlay">
     <div class="login-box">
       <h2>Тепловая карта</h2>
       <p>Войдите для просмотра аналитики</p>
-      <p id="login-error" class="error"></p>
+      <p id="login-error" class="err"></p>
       <input type="text" id="login-input" placeholder="Логин" />
       <input type="password" id="password-input" placeholder="Пароль" />
       <button id="login-btn">Войти</button>
@@ -188,28 +78,52 @@
   <div class="toolbar">
     <span class="toolbar__title">Тепловая карта</span>
     <a href="/admin/">Админ-панель</a>
-    <label>
-      <select id="radius-select">
-        <option value="20">Радиус: 20px</option>
-        <option value="30" selected>Радиус: 30px</option>
-        <option value="50">Радиус: 50px</option>
-        <option value="80">Радиус: 80px</option>
-      </select>
-    </label>
-    <label>
-      <select id="opacity-select">
-        <option value="0.4">Прозрачность: 40%</option>
-        <option value="0.6" selected>Прозрачность: 60%</option>
-        <option value="0.8">Прозрачность: 80%</option>
-        <option value="1">Прозрачность: 100%</option>
-      </select>
-    </label>
+    <select id="radius-select">
+      <option value="25">Радиус: 25</option>
+      <option value="40" selected>Радиус: 40</option>
+      <option value="60">Радиус: 60</option>
+      <option value="90">Радиус: 90</option>
+    </select>
+    <select id="opacity-select">
+      <option value="0.5">Яркость: 50%</option>
+      <option value="0.7" selected>Яркость: 70%</option>
+      <option value="0.85">Яркость: 85%</option>
+      <option value="1">Яркость: 100%</option>
+    </select>
     <button id="refresh-btn">Обновить</button>
-    <span id="stats" class="toolbar__stats"></span>
+  </div>
+
+  <!-- Dashboard -->
+  <div class="dashboard" id="dashboard">
+    <div class="dash-card">
+      <p class="dash-card__label">Сессий</p>
+      <p class="dash-card__value" id="d-sessions">—</p>
+    </div>
+    <div class="dash-card">
+      <p class="dash-card__label">Точек курсора</p>
+      <p class="dash-card__value" id="d-points">—</p>
+    </div>
+    <div class="dash-card">
+      <p class="dash-card__label">Общее время</p>
+      <p class="dash-card__value" id="d-total-time">—</p>
+      <p class="dash-card__sub" id="d-total-time-sub"></p>
+    </div>
+    <div class="dash-card">
+      <p class="dash-card__label">Среднее время</p>
+      <p class="dash-card__value" id="d-avg-time">—</p>
+    </div>
+    <div class="dash-card">
+      <p class="dash-card__label">Макс. время</p>
+      <p class="dash-card__value" id="d-max-time">—</p>
+    </div>
+    <div class="dash-clicks" id="d-clicks-block" style="display:none">
+      <p class="dash-clicks__title">Топ кликов по элементам</p>
+      <ul class="clicks-list" id="d-clicks"></ul>
+    </div>
   </div>
 
   <!-- Heatmap -->
-  <div class="heatmap-wrapper" id="heatmap-wrapper">
+  <div class="heatmap-wrap" id="heatmap-wrap">
     <iframe id="page-frame" src="/"></iframe>
     <canvas id="heatmap-canvas"></canvas>
   </div>

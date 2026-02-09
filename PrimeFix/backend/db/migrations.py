@@ -5,6 +5,7 @@ from sqlalchemy import text
 from sqlalchemy.engine import Connection, Engine
 
 from backend.auth.model import Admin
+from backend.lead_metrics.model import LeadMetrics
 from backend.core.database import Base
 
 logger = logging.getLogger(__name__)
@@ -20,6 +21,8 @@ def run_migrations(engine: Engine) -> None:
         with engine.begin() as conn:
             _migrate_leads_table(conn)
             _migrate_admins_table(conn, engine)
+            _migrate_lead_metrics_table(conn, engine)
+            _drop_behavior_metrics_table(conn)
     except Exception as e:
         logger.warning("Migration error (non-fatal): %s", e)
 
@@ -64,11 +67,9 @@ def _migrate_admins_table(conn: Connection, engine: Engine) -> None:
     row_count = conn.execute(text("SELECT COUNT(*) FROM admins")).scalar()
 
     if row_count == 0:
-        # Таблица пустая — пересоздаём с новой структурой
         conn.execute(text("DROP TABLE admins CASCADE"))
         Base.metadata.create_all(bind=engine, tables=[Admin.__table__])
     else:
-        # Есть данные — добавляем колонку как nullable
         conn.execute(text("ALTER TABLE admins ADD COLUMN email VARCHAR(255)"))
         _ensure_email_index(conn)
         try:
@@ -87,3 +88,45 @@ def _ensure_email_index(conn: Connection) -> None:
         )
     except Exception:
         pass
+
+
+def _migrate_lead_metrics_table(conn: Connection, engine: Engine) -> None:
+    """Миграция lead_metrics: старая структура (id = FK leads) -> новая (auto PK + lead_id FK).
+
+    Если таблица имеет старую структуру (нет колонки lead_id),
+    пересоздаём её с новой структурой.
+    """
+    table_exists = conn.execute(
+        text(
+            "SELECT EXISTS ("
+            "  SELECT FROM information_schema.tables WHERE table_name = 'lead_metrics'"
+            ")"
+        )
+    ).scalar()
+
+    if not table_exists:
+        return
+
+    # Проверяем, есть ли колонка lead_id (признак новой структуры)
+    lead_id_exists = (
+        conn.execute(
+            text(
+                "SELECT column_name FROM information_schema.columns "
+                "WHERE table_name = 'lead_metrics' AND column_name = 'lead_id'"
+            )
+        ).fetchone()
+        is not None
+    )
+
+    if lead_id_exists:
+        return  # Уже новая структура
+
+    # Старая структура — пересоздаём таблицу
+    logger.info("Migrating lead_metrics table to new structure (auto PK + lead_id FK)")
+    conn.execute(text("DROP TABLE lead_metrics CASCADE"))
+    LeadMetrics.__table__.create(conn)
+
+
+def _drop_behavior_metrics_table(conn: Connection) -> None:
+    """Удаление устаревшей таблицы behavior_metrics, если она существует."""
+    conn.execute(text("DROP TABLE IF EXISTS behavior_metrics CASCADE"))

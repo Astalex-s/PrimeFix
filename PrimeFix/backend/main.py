@@ -16,10 +16,8 @@ from backend.leads.router import router as leads_router
 from backend.lead_metrics.router import router as lead_metrics_router
 from backend.services.router import router as services_router
 from backend.services.admin_router import router as admin_services_router
-from backend.admin.router import router as admin_router
 
 # Импорт моделей для регистрации в SQLAlchemy metadata
-import backend.admin.model  # noqa: F401
 import backend.auth.model  # noqa: F401
 import backend.lead_metrics.model  # noqa: F401
 import backend.leads.model  # noqa: F401
@@ -57,7 +55,6 @@ app.include_router(leads_router, prefix="/api")
 app.include_router(lead_metrics_router, prefix="/api")
 app.include_router(services_router, prefix="/api")
 app.include_router(admin_services_router, prefix="/api")
-app.include_router(admin_router, prefix="/api")
 
 
 @app.get("/api/health")

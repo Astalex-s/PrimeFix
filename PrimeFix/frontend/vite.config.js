@@ -10,6 +10,7 @@ export default defineConfig({
       input: {
         main: 'index.html',
         admin: 'admin/index.html',
+        adminServices: 'admin/services.html',
         heatmap: 'admin/heatmap.html',
       },
     },

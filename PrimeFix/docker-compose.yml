@@ -1,4 +1,6 @@
-services:  # описание всех сервисов (контейнеров), входящих в стек
+# API и БД не пробрасываются на хост. Внешний доступ только через Nginx (порт 80).
+# Раскомментировать pgadmin и/или registry при необходимости.
+services:
   nginx:
     build:
       context: .
@@ -6,9 +8,9 @@ services:  # описание всех сервисов (контейнеров)
     image: primefix-nginx:latest
     container_name: nginx
     depends_on:
-      - postgres
-      - pgadmin
       - backend
+      # - postgres   # раскомментировать при использовании pgadmin
+      # - pgadmin    # раскомментировать при использовании pgadmin
     ports:
       - "0.0.0.0:80:80"
     volumes:
@@ -17,55 +19,48 @@ services:  # описание всех сервисов (контейнеров)
       - internal
 
   postgres:
-    image: postgres:16-alpine  # образ PostgreSQL (версия 16 на базе Alpine)
-    container_name: postgres  # имя контейнера базы данных
+    image: postgres:16-alpine
+    container_name: postgres
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-app_db}              # имя создаваемой БД по умолчанию
-      POSTGRES_USER: ${POSTGRES_USER:-app_user}        # пользователь БД
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me}  # пароль пользователя (заменить в реальной среде)
+      POSTGRES_DB: ${POSTGRES_DB:-app_db}
+      POSTGRES_USER: ${POSTGRES_USER:-app_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me}
     volumes:
-      - postgres_data:/var/lib/postgresql/data  # постоянное хранение данных БД в docker-томе
+      - postgres_data:/var/lib/postgresql/data
     networks:
-      - internal  # база доступна только внутри внутренней сети
+      - internal
 
-  pgadmin:
-    image: dpage/pgadmin4:8
-    container_name: pgadmin
-    environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@example.com}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-change_me}
-      PGADMIN_LISTEN_PORT: ${PGADMIN_LISTEN_PORT:-80}
-      SCRIPT_NAME: /pgadmin
-      # Доверять заголовкам X-Forwarded от Nginx (иначе редиректы/сессия за прокси ломаются)
-      PROXY_X_FOR_COUNT: 1
-      PROXY_X_PROTO_COUNT: 1
-      PROXY_X_HOST_COUNT: 1
-      PROXY_X_PREFIX_COUNT: 1
-      # Отключить усиленную проверку cookie за reverse proxy (иначе сессия может не сохраняться)
-      PGADMIN_CONFIG_ENHANCED_COOKIE_PROTECTION: "False"
-    ports:
-      - "0.0.0.0:5050:80"  # проброс порта 5050 хоста на порт 80 контейнера (интерфейс pgAdmin)
-    depends_on:
-      - postgres  # запускать после PostgreSQL
-    networks:
-      - internal  # доступ к PostgreSQL только через внутреннюю сеть
+  # --- pgadmin (отключён; раскомментировать для доступа к БД через веб-интерфейс) ---
+  # pgadmin:
+  #   image: dpage/pgadmin4:8
+  #   container_name: pgadmin
+  #   environment:
+  #     PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@example.com}
+  #     PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-change_me}
+  #     PGADMIN_LISTEN_PORT: ${PGADMIN_LISTEN_PORT:-80}
+  #     SCRIPT_NAME: /pgadmin
+  #     PROXY_X_FOR_COUNT: 1
+  #     PROXY_X_PROTO_COUNT: 1
+  #     PROXY_X_HOST_COUNT: 1
+  #     PROXY_X_PREFIX_COUNT: 1
+  #     PGADMIN_CONFIG_ENHANCED_COOKIE_PROTECTION: "False"
+  #   ports:
+  #     - "0.0.0.0:5050:80"
+  #   depends_on:
+  #     - postgres
+  #   networks:
+  #     - internal
 
-  registry:
-    image: registry:2
-    container_name: registry
-    ports:
-      - "0.0.0.0:5000:5000"
-    environment:
-      REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY: /var/lib/registry
-      REGISTRY_AUTH: htpasswd
-      REGISTRY_AUTH_HTPASSWD_REALM: "Registry Realm"
-      REGISTRY_AUTH_HTPASSWD_PATH: /auth/htpasswd
-      REGISTRY_HTTP_SECRET: ${REGISTRY_HTTP_SECRET:-primefix-registry-secret-change-in-production}
-    volumes:
-      - registry_data:/var/lib/registry  # том для хранения образов реестра
-      - ./registry/auth:/auth            # монтируем каталог с файлом htpasswd
-    networks:
-      - internal  # реестр находится во внутренней сети
+  # --- Docker Registry (отключён; раскомментировать для приватного реестра образов) ---
+  # registry:
+  #   image: registry:2
+  #   container_name: registry
+  #   ports:
+  #     - "0.0.0.0:5000:5000"
+  #   volumes:
+  #     - registry_data:/var/lib/registry
+  #   networks:
+  #     - internal
 
   watchtower:
     image: containrrr/watchtower  # образ Watchtower (тег latest)
@@ -95,15 +90,13 @@ services:  # описание всех сервисов (контейнеров)
       - postgres
     networks:
       - internal
-    # Порт не пробрасывается на хост — доступ к API только через Nginx (location /api/)
+    # Порт на хост не пробрасывается — API доступен только для Nginx по внутренней сети (proxy_pass на backend:8080).
 
 volumes:
-  postgres_data:  # том для хранения данных PostgreSQL
-  registry_data:  # том для хранения данных Docker Registry
+  postgres_data:
+  # registry_data:  # для registry (раскомментировать вместе с сервисом registry)
 
 networks:
   internal:
     driver: bridge
-    # internal: false — обязательно для работы проброса портов (80, 5050, 5000) на хост.
-    # Сеть остаётся изолированной от других стеков; контейнеры доступны только по явно указанным ports.
 

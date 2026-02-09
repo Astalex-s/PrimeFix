@@ -323,16 +323,15 @@ async function init() {
       if (adminInfoElement) {
         adminInfoElement.textContent = `Вы вошли как: ${adminInfo.login} (${adminInfo.email})`;
       }
-      // Инициализируем обработчики
-      initServicesHandlers();
-      initSettingsHandlers();
-      initLeadsHandlers();
-      // Загружаем данные
-      setTimeout(() => {
-        loadScoredLeads();
-        loadServices();
-        loadSettings();
-      }, 100);
+      // Инициализация и загрузка только для текущей страницы
+      if (document.getElementById('leads-card')) {
+        initLeadsHandlers();
+        setTimeout(loadScoredLeads, 100);
+      }
+      if (document.getElementById('add-service-btn')) {
+        initServicesHandlers();
+        setTimeout(loadServices, 100);
+      }
     }
   }
 }
@@ -503,187 +502,6 @@ function hideServiceMessages() {
   if (successEl) successEl.style.display = 'none';
 }
 
-// ==========================================
-// Управление настройками (admin_settings)
-// ==========================================
-let currentEditingSettingId = null;
-
-async function loadSettings() {
-  const tbody = document.getElementById('settings-table-body');
-  if (!tbody) return;
-
-  try {
-    tbody.innerHTML = '<tr><td colspan="6" class="loading">Загрузка...</td></tr>';
-    const settings = await apiRequest('/admin/settings/');
-    
-    if (settings.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" class="empty">Нет настроек. Добавьте первую настройку.</td></tr>';
-      return;
-    }
-
-    tbody.innerHTML = settings.map(setting => `
-      <tr>
-        <td>${setting.id}</td>
-        <td>${escapeHtml(setting.key)}</td>
-        <td class="setting-value-cell">${escapeHtml(setting.value)}</td>
-        <td>${formatDate(setting.created_at)}</td>
-        <td>${formatDate(setting.updated_at)}</td>
-        <td class="actions">
-          <button onclick="editSetting(${setting.id})" class="btn btn--small btn--secondary">Редактировать</button>
-          <button onclick="deleteSetting(${setting.id})" class="btn btn--small btn--danger">Удалить</button>
-        </td>
-      </tr>
-    `).join('');
-  } catch (error) {
-    tbody.innerHTML = `<tr><td colspan="6" class="error">Ошибка загрузки: ${error.message}</td></tr>`;
-  }
-}
-
-function openSettingModal(settingId = null) {
-  currentEditingSettingId = settingId;
-  const modal = document.getElementById('setting-modal');
-  const form = document.getElementById('setting-form');
-  const title = document.getElementById('setting-modal-title');
-  const keyInput = document.getElementById('setting-key');
-  const valueInput = document.getElementById('setting-value');
-
-  if (settingId) {
-    title.textContent = 'Редактировать настройку';
-    apiRequest(`/admin/settings/${settingId}`).then(setting => {
-      keyInput.value = setting.key;
-      valueInput.value = setting.value || '';
-    }).catch(error => {
-      showSettingError('Ошибка загрузки настройки: ' + error.message);
-    });
-  } else {
-    title.textContent = 'Добавить настройку';
-    form.reset();
-  }
-
-  modal.style.display = 'flex';
-}
-
-function closeSettingModal() {
-  const modal = document.getElementById('setting-modal');
-  modal.style.display = 'none';
-  currentEditingSettingId = null;
-  document.getElementById('setting-form').reset();
-}
-
-async function saveSetting(event) {
-  event.preventDefault();
-  hideSettingMessages();
-
-  const keyInput = document.getElementById('setting-key');
-  const valueInput = document.getElementById('setting-value');
-  const key = keyInput.value.trim();
-  const value = valueInput.value.trim();
-
-  if (!key) {
-    showSettingError('Ключ настройки обязателен');
-    return;
-  }
-
-  if (!value) {
-    showSettingError('Значение настройки обязательно');
-    return;
-  }
-
-  try {
-    if (currentEditingSettingId) {
-      await apiRequest(`/admin/settings/${currentEditingSettingId}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ key, value }),
-      });
-      showSettingSuccess('Настройка успешно обновлена');
-    } else {
-      await apiRequest('/admin/settings/', {
-        method: 'POST',
-        body: JSON.stringify({ key, value }),
-      });
-      showSettingSuccess('Настройка успешно добавлена');
-    }
-
-    closeSettingModal();
-    loadSettings();
-  } catch (error) {
-    showSettingError(error.message || 'Ошибка сохранения настройки');
-  }
-}
-
-async function deleteSetting(settingId) {
-  if (!confirm('Вы уверены, что хотите удалить эту настройку?')) {
-    return;
-  }
-
-  try {
-    await apiRequest(`/admin/settings/${settingId}`, {
-      method: 'DELETE',
-    });
-    showSettingSuccess('Настройка успешно удалена');
-    loadSettings();
-  } catch (error) {
-    showSettingError(error.message || 'Ошибка удаления настройки');
-  }
-}
-
-function editSetting(settingId) {
-  openSettingModal(settingId);
-}
-
-function showSettingError(message) {
-  const errorEl = document.getElementById('error-message-settings');
-  if (errorEl) {
-    errorEl.textContent = message;
-    errorEl.style.display = 'block';
-    document.getElementById('success-message-settings').style.display = 'none';
-  }
-}
-
-function showSettingSuccess(message) {
-  const successEl = document.getElementById('success-message-settings');
-  if (successEl) {
-    successEl.textContent = message;
-    successEl.style.display = 'block';
-    document.getElementById('error-message-settings').style.display = 'none';
-  }
-}
-
-function hideSettingMessages() {
-  const errorEl = document.getElementById('error-message-settings');
-  const successEl = document.getElementById('success-message-settings');
-  if (errorEl) errorEl.style.display = 'none';
-  if (successEl) successEl.style.display = 'none';
-}
-
-// Инициализация обработчиков для управления настройками
-let settingsHandlersInitialized = false;
-function initSettingsHandlers() {
-  if (settingsHandlersInitialized) return;
-  settingsHandlersInitialized = true;
-
-  const addSettingBtn = document.getElementById('add-setting-btn');
-  const settingForm = document.getElementById('setting-form');
-
-  if (addSettingBtn) {
-    addSettingBtn.addEventListener('click', () => openSettingModal());
-  }
-
-  if (settingForm) {
-    settingForm.addEventListener('submit', saveSetting);
-  }
-
-  // Закрытие модального окна при клике вне его
-  const modal = document.getElementById('setting-modal');
-  if (modal) {
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) {
-        closeSettingModal();
-      }
-    });
-  }
-}
-
 // Инициализация обработчиков для управления услугами
 let servicesHandlersInitialized = false;
 function initServicesHandlers() {
@@ -712,26 +530,17 @@ function initServicesHandlers() {
   }
 }
 
-// Инициализация при загрузке страницы
+// Инициализация при загрузке страницы (обработчики лидов/услуг подключаются в showAdminPanel по наличию элементов)
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    init();
-    initServicesHandlers();
-    initSettingsHandlers();
-  });
+  document.addEventListener('DOMContentLoaded', init);
 } else {
   init();
-  initServicesHandlers();
-  initSettingsHandlers();
 }
 
 // Экспорт функций для использования в HTML
 window.editService = editService;
 window.deleteService = deleteService;
 window.closeServiceModal = closeServiceModal;
-window.editSetting = editSetting;
-window.deleteSetting = deleteSetting;
-window.closeSettingModal = closeSettingModal;
 window.openLeadModal = openLeadModal;
 window.closeLeadModal = closeLeadModal;
 
@@ -877,6 +686,5 @@ window.adminAuth = {
   apiRequest,
   isAuthenticated,
   loadServices,
-  loadSettings,
   loadScoredLeads,
 };

@@ -1,22 +1,59 @@
-/* Стили страницы /admin — в том же стиле, что и основной сайт */
+/* Стили страницы /admin — контент растягивается на 100% ширины */
+
+/* Переопределение .container из style.css (max-width: 960px) — в админке контент на всю ширину */
+.admin-main .container,
+.admin-section .container,
+.admin-section .admin-container,
+.header .container.container--full,
+.footer .container.container--full {
+  max-width: none;
+  width: 100%;
+  box-sizing: border-box;
+}
 
 .admin-main {
+  width: 100%;
+  min-width: 0;
   min-height: 100vh;
-  padding: 80px 0 60px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  padding: clamp(40px, 5vw, 80px) 0 clamp(24px, 3vw, 60px);
+  box-sizing: border-box;
 }
 
 .admin-section {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+/* Контейнер на 100% ширины, адаптивные отступы */
+.container--full {
+  max-width: none;
+  width: 100%;
+  padding-left: clamp(12px, 3vw, 24px);
+  padding-right: clamp(12px, 3vw, 24px);
+  box-sizing: border-box;
 }
 
 .admin-container {
-  max-width: 1200px;
+  max-width: none;
+  width: 100%;
+  min-width: 0;
   margin: 0 auto;
   text-align: center;
-  padding: 0 20px;
+  padding: 0 clamp(12px, 3vw, 20px);
+  box-sizing: border-box;
+}
+
+/* Обёртка таблицы на всю ширину панели */
+.admin-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  margin-top: 24px;
+}
+
+.admin-card--full {
+  width: 100%;
 }
 
 /* Форма авторизации: фиксированная компактная ширина, центрирована */
@@ -163,10 +200,27 @@
   gap: 16px;
 }
 
-/* Таблица услуг */
-.services-table-container {
-  overflow-x: auto;
-  margin-top: 24px;
+/* Навигация между страницами админки */
+.nav__link {
+  color: var(--color-text-muted);
+  text-decoration: none;
+  font-size: 0.95rem;
+  padding: 6px 12px;
+  border-radius: var(--radius);
+  transition: color 0.2s, background 0.2s;
+}
+.nav__link:hover {
+  color: var(--color-gold-light);
+}
+.nav__link--active {
+  color: var(--color-gold-light);
+  font-weight: 500;
+}
+
+/* Таблица услуг и обёртка */
+.services-table-container,
+.admin-table-wrap .services-table {
+  width: 100%;
 }
 
 .services-table {
